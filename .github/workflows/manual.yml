@@ -1,0 +1,102 @@
+# This is a basic Salesforce CI workflow job
+
+name: ManualDeploy
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "master" branch
+  # push:
+  #   branches:
+  #     - master
+  #     - preprod
+  #     - uat
+  #     - sit
+  # pull_request:
+  #   branches:
+  #     - master
+  #     - preprod
+  #     - uat
+  #     - sit
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    #inputs for the manual run
+    inputs:
+          buildType:
+            description: 'Build Type'
+            required: true
+            default: 'Validate'
+            type: choice
+            options:
+            - Validate
+            - Deploy
+          targetOrg:
+            description: 'Target Org'
+            required: true
+            default: 'MYORG' 
+            type: choice
+            # Target Org name should only have capital letters (Correct: MYORG, Wrong: MyOrg) and also the properties file name also should be same as the Target Org name (Correct: MYORG.properties, Wrong: MyOrg.properties).
+            options:
+            - MYORG
+            - MYORG2
+          testLevel:
+            description: 'Test Run'
+            required: true
+            default: 'RunLocalTests' 
+            type: choice
+            options:
+            - RunLocalTests
+            - NoTestRun
+            # Update the ","(comma) seperated list of test classes to run TestClasses/SpecifiedTests.txt file
+            - RunSpecifiedTests
+
+# Run the job
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    container:
+            image: salesforce/cli:latest-rc-full
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # read test classes from the file. "-r " should be first characters before adding test classes as comma seperated
+      - name: Read test classes list only for RunSpecifiedTests build
+        id: testClasses
+        if: ${{ github.event.inputs.testLevel == 'RunSpecifiedTests' }}
+        run: |
+          echo "list=$(cat TestClasses/SpecifiedTests.txt)" >> $GITHUB_OUTPUT
+          echo "tests=-t" >> $GITHUB_OUTPUT
+
+      # read build type and set code
+      - name: Read build type and set build type code
+        id: buildTypeCode
+        if: ${{ github.event.inputs.buildType == 'Validate' }}
+        run: echo "buildcode=--dry-run" >> $GITHUB_OUTPUT
+
+      # place to see the job configuration
+      - name: Print Job Configuration
+        run: |
+          sf version
+          echo Branch Name: ${GITHUB_REF##*/}
+          echo Target Org: ${{ github.event.inputs.targetOrg }}
+          echo Build Type: ${{ github.event.inputs.buildType }}
+          echo Test Level: ${{ github.event.inputs.testLevel }}
+          echo Test Classes only for RunSpecifiedTests: ${{ steps.testClasses.outputs.list }}
+
+      # Authentication URL of Target Org
+      - name: Write the sfdxauthurl into a file
+        # Secret name should only have captial letters and also should be same as the git workflow Target Org name (Correct: MYORG, Wrong: MyOrg).
+        run: echo ${{ secrets[github.event.inputs.targetOrg] }} > sfdxauthurl.txt
+      
+      # Authenticate to Target Org
+      - name: Authenticate to Target Org
+        run: sf org login sfdx-url --sfdx-url-file sfdxauthurl.txt --set-default
+
+      # run the build
+      - name: ${{ github.event.inputs.buildType }} source code
+        run: 'sf project deploy start -d force-app -l ${{ github.event.inputs.testLevel }} ${{ steps.testClasses.outputs.tests }} ${{ steps.testClasses.outputs.list }} ${{ steps.buildTypeCode.outputs.buildcode }}'
