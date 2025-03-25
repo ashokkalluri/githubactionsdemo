@@ -11,12 +11,12 @@ on:
       - preprod
       - uat
       - sit
-  pull_request:
-    branches:
-      - master
-      - preprod
-      - uat
-      - sit
+  # pull_request:
+  #   branches:
+  #     - master
+  #     - preprod
+  #     - uat
+  #     - sit
 
 # Run the job
 jobs:
