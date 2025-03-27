@@ -47,7 +47,7 @@ on:
             options:
             - RunLocalTests
             - NoTestRun
-            # Update the ","(comma) seperated list of test classes to run TestClasses/SpecifiedTests.txt file
+            # Update the " "(space) seperated list of test classes to run TestClasses/SpecifiedTests.txt file
             - RunSpecifiedTests
 
 # Run the job
