@@ -1,6 +1,6 @@
 # This is a basic Salesforce CI workflow job
 
-name: AutoDeploy
+name: AutoValidate
 
 # Controls when the workflow will run
 on:
