@@ -8,9 +8,7 @@ public class AccountListController {
 
     }
 
-    //test command 3
-    //comment 4
-    //test comment 5
+    //test 1
     public void testMethod3 () {
         Integer helloInt;
     }
